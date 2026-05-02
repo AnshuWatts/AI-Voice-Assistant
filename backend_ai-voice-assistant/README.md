@@ -158,3 +158,11 @@ Voice Commands |
 - Run assistant:
   `python main.py`
 
+## Web API Bridge (for React frontend)
+- Install dependencies (same venv):
+  `python -m pip install -r requirements-py310.txt`
+- Run API server:
+  `python -m uvicorn api_server:app --host 0.0.0.0 --port 8000 --reload`
+- Optional CORS override (comma separated):
+  `set ALLOWED_ORIGINS=http://localhost:8080,http://127.0.0.1:8080`
+

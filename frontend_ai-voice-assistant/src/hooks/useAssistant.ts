@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { assistantService } from "@/services";
-import { mockAssistantService } from "@/services/MockAssistantService";
 import type {
   AssistantSettings,
   AssistantStatus,
@@ -12,8 +11,8 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 
 const initialStatus: AssistantStatus = {
   state: "idle",
-  connection: "mock",
-  micAvailable: true,
+  connection: "disconnected",
+  micAvailable: false,
   voiceOutputEnabled: true,
 };
 
@@ -37,7 +36,8 @@ export function useAssistant() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const unsub = mockAssistantService.subscribe?.(setStatus);
+    const unsub = assistantService.subscribe?.(setStatus);
+    assistantService.getStatus().then(setStatus).catch(() => {});
     assistantService.getHistory().then(setHistory).catch(() => {});
     return () => { unsub?.(); };
   }, []);

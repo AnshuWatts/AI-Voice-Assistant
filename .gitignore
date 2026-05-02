@@ -1,0 +1,9 @@
+# Python
+**/__pycache__/
+*.pyc
+
+# Local virtual environments
+backend_ai-voice-assistant/.venv/
+
+# Frontend local env
+frontend_ai-voice-assistant/.env

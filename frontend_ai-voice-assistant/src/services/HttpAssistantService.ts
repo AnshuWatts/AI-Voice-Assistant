@@ -6,20 +6,22 @@ import type {
 } from "@/types/assistant";
 
 /**
- * HTTP adapter for a future Python bridge API (e.g. FastAPI wrapping main.py).
+ * HTTP adapter for the Python bridge API.
  *
- * Expected (suggested) endpoints — not yet implemented on the backend:
+ * Endpoints:
  *   GET    /status
  *   POST   /listen/start    -> { transcript }
  *   POST   /listen/stop
  *   POST   /command         { command }  -> { message, log }
  *   GET    /history
  *   POST   /settings/voice  { enabled }
- *
- * Until the bridge exists, instantiate MockAssistantService instead.
  */
 export class HttpAssistantService implements AssistantService {
-  constructor(private baseUrl: string) {}
+  private baseUrl: string;
+
+  constructor(baseUrl: string) {
+    this.baseUrl = baseUrl.replace(/\/+$/, "");
+  }
 
   private async req<T>(path: string, init?: RequestInit): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`, {
@@ -33,25 +35,58 @@ export class HttpAssistantService implements AssistantService {
   getStatus() {
     return this.req<AssistantStatus>("/status");
   }
+
   startListening() {
     return this.req<{ transcript: string }>("/listen/start", { method: "POST" });
   }
+
   async stopListening() {
     await this.req<void>("/listen/stop", { method: "POST" });
   }
+
   sendTextCommand(command: string) {
     return this.req<SendCommandResult>("/command", {
       method: "POST",
       body: JSON.stringify({ command }),
     });
   }
+
   getHistory() {
     return this.req<CommandLog[]>("/history");
   }
+
   toggleVoiceOutput(enabled: boolean) {
     return this.req<AssistantStatus>("/settings/voice", {
       method: "POST",
       body: JSON.stringify({ enabled }),
     });
+  }
+
+  subscribe(listener: (status: AssistantStatus) => void) {
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const status = await this.getStatus();
+        if (!cancelled) listener(status);
+      } catch {
+        if (!cancelled) {
+          listener({
+            state: "offline",
+            connection: "disconnected",
+            micAvailable: false,
+            voiceOutputEnabled: false,
+          });
+        }
+      }
+    };
+
+    void poll();
+    const id = window.setInterval(() => void poll(), 1200);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
   }
 }
